@@ -1,55 +1,103 @@
-cloudify.nodes
-    Compute
-    Container
-    Volume
-    FileSystem
-    ObjectStorage
-    Network
-    Subnet
-    Port
-    Router
-    VirtualIP
-    SecurityGroup
-    DBMS
-    Database
-    WebServer
-    ApplicationServer
-    MessageBusServer
-    ApplicationModule
-    CloudifyManager
-cloudify.puppet.nodes
-    SoftwareComponent
-    ApplicationServer
-    DBMS
-    WebServer
-    ApplicationModule
-cloudify.openstack.nodes
-    Server
-    WindowsServer
-    KeyPair
-    Subnet
-    SecurityGroup
-    Router
-    Port
-    Network
-    FloatingIP
-    Volume
-cloudify.openstack.nova_net.nodes
-    FloatingIP
-    SecurityGroup
-cloudify.hostpool.nodes
-    Host
-    WindowsHost
-cloudify.docker
-    Container
-cloudify.chef.nodes
-    SoftwareComponent
-    WebServer
-    ApplicationServer
-    DBMS
-    ApplicationModule
-cloudify.aws.nodes
-    Instance
-    ElasticIP
-    SecurityGroup
-    KeyPair
+1、cloudify-manager-blueprints：https://github.com/cloudify-cosmo/cloudify-manager-blueprints/tree/3.1-build
+可以选择simple或者openstack-nova-net版本（需要调整）。
+cloudify-nodecellar-example：https://github.com/cloudify-cosmo/cloudify-nodecellar-example
+2、手把手安装Cloudify 3.1：http://www.oschina.net/question/2241484_233747
+Cloudify3.1环境搭建和插件集成：http://www.oschina.net/question/2355760_236935
+3、cloudify主要帮助文档：
+http://getcloudify.org/guide/3.1/quickstart.html
+http://getcloudify.org/guide/3.1/quickstart-openstack.html
+http://getcloudify.org/guide/3.1/plugin-openstack.html
+http://getcloudify.org/guide/3.2/getting-started-write-blueprint.html
+http://docs.getcloudify.org/3.3.1/blueprints/overview/
+cloudify-hello-world-example：https://github.com/cloudify-cosmo/cloudify-hello-world-example
+
+1、安装Cloudify CLI
+mkdir cloudify
+apt-get install python-pip -y
+apt-get install python-dev -y
+pip install cloudify==3.1
+cfy --version
+Cloudify CLI 3.1.0     (build: 85, date: )
+===========================================================
+CentOS7.1安装：http://docs.getcloudify.org/3.3.1/installation/from-packages/
+centos7 关闭firewall安装iptables并配置：http://linux.it.net.cn/CentOS/fast/2015/0110/11567.html
+yum install python-pip -y
+sudo rpm -i cloudify-centos-Core-cli-3.3.1-sp_b310.x86_64.rpm
+source /opt/cfy/env/bin/activate
+cfy --version
+
+2、安装Cloudify Manager
+apt-get install git -y
+git clone https://github.com/cloudify-cosmo/cloudify-manager-blueprints
+cd cloudify-manager-blueprints
+git checkout tags/3.1
+或者：wget https://github.com/cloudify-cosmo/cloudify-manager-blueprints/archive/3.1-build.zip
+cfy init
+下载必备软件包：cloudify-manager-pkgs/，修改simple.yaml软件包为NGINX本地路径（http://10.5.24.13/static）
+cp inputs.json.template inputs.json
+修改inputs.json入参
+chmod 400 sys_automation.dat
+cfy local create-requirements -o requirements.txt -p simple.yaml
+sudo pip install -r requirements.txt
+cfy bootstrap -p simple.yaml -i inputs.json
+
+cd /opt/cloudify-ui/node_modules/cosmo-ui
+nohup node cosmoui.js >/dev/null 2>&1 &
+cfy use -t 10.5.24.12
+cfy  status
+=============================================================
+CentOS7.1安装：http://docs.getcloudify.org/3.3.1/manager/prerequisites/
+yum install lrzsz -y
+准备simple-manager-blueprint.yaml本地软件包、simple-manager-blueprint-inputs.yaml输入资源
+cfy init
+cfy bootstrap --install-plugins -p simple-manager-blueprint.yaml -i simple-manager-blueprint-inputs.yaml
+bootstrapping complete
+management server is up at 10.5.24.124
+cfy use -t 10.5.24.124
+cfy status
+Getting management services status... [ip=10.5.24.124]
+
+Services:
++--------------------------------+---------+
+|            service             |  status |
++--------------------------------+---------+
+| InfluxDB                       | running |
+| Celery Management              | running |
+| Logstash                       | running |
+| RabbitMQ                       | running |
+| AMQP InfluxDB                  | running |
+| Manager Rest-Service           | running |
+| Cloudify UI                    | running |
+| Webserver                      | running |
+| Riemann                        | running |
+| Elasticsearch                  | running |
++--------------------------------+---------+
+安装cloudify-blueprint-composer：http://docs.getcloudify.org/3.3.1/composer/installation/
+sudo rpm -Uvh cloudify-blueprint-composer-3.3.0-ga-b300.rpm
+
+
+3、基本功能体验
+git clone https://github.com/cloudify-cosmo/cloudify-nodecellar-example
+上传工作流：cfy blueprints upload -b monitor -p openstack.yaml
+部署工作流：cfy deployments create -b monitor -d monitor --inputs inputs.json
+执行工作流：cfy executions start -w install -d monitor
+
+4、与OpenStack对接
+Openstack Configuration：http://getcloudify.org/guide/3.1/plugin-openstack.html
+
+
+5、Cloudify API文档：http://docs.getcloudify.org/api/#cloudify-rest-api-v2
+http://10.5.24.12/api/spec.html#!/spec.json/list_0_1
+
+6、参考资料：
+手把手安装Cloudify 3.1：http://www.oschina.net/question/2241484_233747?fromerr=Py51zWho
+Cloudify3.1环境搭建和插件集成：http://www.oschina.net/question/2355760_236935?fromerr=lXJRj7mt
+工作流定义语法：http://getcloudify.org/guide/3.1/dsl-spec-outputs.html
+用graphite diamond做监控：http://my.oschina.net/duoduo3369/blog/338142
+Python性能监控Graphite：http://www.mincoder.com/article/5074.shtml
+使用Grafana+Diamond+Graphite构造完美监控面板：http://www.tuicool.com/articles/Ff6fIfn
+rabbitmq启动失败：http://stackoverflow.com/questions/25816918/not-able-to-start-rabbitmq-server-in-centos-7-using-systemctl
+使用 Grafana＋collectd＋InfluxDB 打造现代监控系统：http://www.tuicool.com/articles/VBZvIri
+
+
+
